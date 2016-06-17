@@ -1,0 +1,13 @@
+- name: Build k8s master
+  hosts: master
+  gather_facts: false
+  roles:
+    - { role: master }
+
+- name: Build k8s nodes
+  hosts: node
+  gather_facts: false
+  roles:
+    - { role: node }
+
+

@@ -1,0 +1,101 @@
+---
+# tasks file for master
+
+- name: Create etcd.conf 
+  template:
+    src: etcd.conf.j2
+    dest: /etc/etcd/etcd.conf
+
+- name: Create Kubernete config file
+  template:
+    src: config.j2
+    dest: /etc/kubernetes/config
+
+- name: Start and enable etcd and docker
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - etcd
+    - docker
+
+- name: Create Flannel Config
+  template:
+    src: flannel-config.json.j2
+    dest: /root/flannel-config.json
+
+- name: Upload Flannel configuration to etcd service 
+  shell: etcdctl set coreos.com/network/config < /root/flannel-config.json
+
+- name: Configure flanneld overlay network
+  template:
+    src: flanneld.j2
+    dest: /etc/sysconfig/flanneld
+
+- name: Enable Flanneld
+  service: 
+    name: flanneld
+    enabled: yes
+
+- name: Reboot
+  command: systemctl reboot
+  async: 0
+  poll: 0
+  ignore_errors: true
+
+- name: Wait for SSH to be available
+  local_action:
+    module: wait_for
+    host: "{{ inventory_hostname }}"
+    port: 22
+    state: started
+
+- name: Create kubelet file
+  template:
+    src: kubelet.j2
+    dest: /etc/kubernetes/kubelet
+
+- name: Create Directories
+  file:
+    path: "/etc/kubernetes/manifests"
+    recurse: True
+    state: directory
+
+- name: Create manifests
+  template:
+    src: "{{ item }}"
+    dest: "/etc/kubernetes/manifests/{{ item[:-2] }}"
+  with_items:
+    - apiserver.pod.json.j2
+    - controller-manager.pod.json.j2
+    - scheduler.pod.json.j2
+
+
+- name: Disable local k8s services
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  with_items:
+    - kube-apiserver 
+    - kube-controller-manager 
+    - kube-scheduler
+
+
+- name: Docker Pull k8s images
+  command: "docker pull {{ item }}"
+  with_items:
+    - "rhel7/kubernetes-controller-mgr"
+    - "rhel7/kubernetes-apiserver"
+    - "rhel7/kubernetes-scheduler"
+
+- name: Start k8s services
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - kube-proxy
+    - kubelet
+

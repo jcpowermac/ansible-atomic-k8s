@@ -1,0 +1,2 @@
+master_hostname: k8s-master1.virtomation.com
+flannel_network_subnet: 10.20.0.0/16

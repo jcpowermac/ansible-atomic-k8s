@@ -1,0 +1,33 @@
+---
+- name: k8s config
+  template:
+    src: config.j2
+    dest: /etc/kubernetes/config
+
+- name: kubelet config
+  template:
+    src: kubelet.j2 
+    dest: /etc/kubernetes/kubelet
+
+- name: Enable and start services
+  service: 
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - docker 
+    - kube-proxy.service
+    - kubelet.service
+
+- name: Configure flanneld overlay network 
+  template:
+    src: flanneld.j2
+    dest: /etc/sysconfig/flanneld
+
+- name: Start Flanneld
+  service:
+    name: flanneld
+    enabled: yes
+    state: started
+
+

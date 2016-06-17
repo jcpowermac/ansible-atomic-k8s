@@ -1,0 +1,3 @@
+---
+# defaults file for master
+flannel_etcd_key: /coreos.com/network
