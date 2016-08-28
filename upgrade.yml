@@ -1,0 +1,24 @@
+---
+- name: Build k8s nodes
+  hosts: node
+  gather_facts: false
+  tasks:
+    - name: sub mgr
+      command: subscription-manager register --auto-attach
+      ignore_errors: true
+
+    - name: Upgrade Atomic
+      command: atomic host upgrade
+
+    - name: Reboot
+      command: systemctl reboot
+      async: 0
+      poll: 0
+      ignore_errors: true
+
+    - name: Wait for SSH to be available
+      local_action:
+        module: wait_for
+        host: "{{ inventory_hostname }}"
+        port: 22
+        state: started

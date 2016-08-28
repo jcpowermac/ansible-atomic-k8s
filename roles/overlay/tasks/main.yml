@@ -1,0 +1,43 @@
+---
+- name: Stop Docker
+  service: 
+    name: "{{ item }}"
+    state: stopped
+  with_items:
+    - "docker"
+    - "docker-storage-setup"
+
+- name: Remove docker-pool
+  command: lvremove rhelah/docker-pool
+  ignore_errors: true
+
+- name: Remove Docker Storage Setup
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/lib/docker/
+    - /etc/sysconfig/docker-storage-setup
+
+
+- name: Reset docker-storage-setup
+  command: docker-storage-setup --reset
+
+- name: Disable SELinux 
+  replace:
+    regexp: '--selinux-enabled'
+    dest: /etc/sysconfig/docker
+    backup: true
+
+- name: docker-storage-setup
+  copy:
+    content: "STORAGE_DRIVER=overlay"
+    dest: /etc/sysconfig/docker-storage-setup
+
+- name: Started Docker
+  service: 
+    name: "{{ item }}"
+    state: started 
+  with_items:
+    - "docker"
+    - "docker-storage-setup"

@@ -39,8 +39,8 @@
     enabled: yes
 
 - name: Reboot
-  command: systemctl reboot
-  async: 0
+  shell: sleep 2 && systemctl reboot
+  async: 1
   poll: 0
   ignore_errors: true
 
@@ -49,6 +49,7 @@
     module: wait_for
     host: "{{ inventory_hostname }}"
     port: 22
+    delay: 10
     state: started
 
 - name: Create kubelet file
